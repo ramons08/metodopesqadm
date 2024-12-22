@@ -4,25 +4,27 @@ format: html
 editor: visual
 ---
 
-## Aula prática
+## Aula prática - Estudo de caso
 
-Caso: Área de logística - identificação de elementos que influenciam no custo de transporte de carga. 
+Você é um(a) analista de logística em uma grande empresa e está preocupado(a) com o aumento dos **custos de frete**, que têm impactado negativamente os resultados financeiros. Para entender melhor os fatores que influenciam esses custos, você decide usar a ferramenta de **regressão múltipla** e criar um modelo estatístico capaz de quantificar o impacto de variáveis como distância percorrida, peso da carga, tipo de transporte e outros fatores operacionais. Após uma análise inicial, você conseguiu extrair dos sistemas de informação da empresa dois relatórios contendo dados relevantes, que serão utilizados para estruturar sua pesquisa e apoiar decisões estratégicas voltadas à redução de custos e aumento da eficiência logística.
+
+Os arquivos extraídos do sistema foram:\
+frete_dados_primarios.csv\
+frete_dados_adicionais.csv
+
+Além do custo de transporte, esses arquivos contém variáveis que você identificou como relevantes para o estudo, que estão listadas a seguir.
 
 **Variável dependente:**
 
 -   custo de transporte
 
--   **Variáveis independentes:**
+**Variáveis independentes:**
 
--   distância
-
--   peso
-
--   modal
-
--   custo de combustível
-
--   experiência do motorista
+-distância\
+-peso\
+-modal\
+-custo de combustível\
+-experiência do motorista
 
 ## 1. Reunir arquivos em um dataframe
 
@@ -35,5 +37,20 @@ dadoscombinados <- merge(freteprima, freteadic, by = "id_evento")
 
 head(dadoscombinados)
 head(freteadic)
+head(freteprima)
+
+```
+
+## 2. Exploração descritiva dos dados
+
+```{r}
+
+summary(dadoscombinados)
+
+
+```
+
+```{r}
+cor(dadoscombinados[, c("custofrete", "distancia", "peso", "custo_combust")])
 
 ```
