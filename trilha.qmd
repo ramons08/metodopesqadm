@@ -1,0 +1,39 @@
+---
+title: "Roteiro_aula_pratica"
+format: html
+editor: visual
+---
+
+## Aula prática
+
+Caso: Área de logística - identificação de elementos que influenciam no custo de transporte de carga. 
+
+**Variável dependente:**
+
+-   custo de transporte
+
+-   **Variáveis independentes:**
+
+-   distância
+
+-   peso
+
+-   modal
+
+-   custo de combustível
+
+-   experiência do motorista
+
+## 1. Reunir arquivos em um dataframe
+
+```{r}
+
+freteprima <- read.csv("frete_dados_primarios.csv")
+freteadic <- read.csv("frete_dados_adicionais.csv")
+
+dadoscombinados <- merge(freteprima, freteadic, by = "id_evento")
+
+head(dadoscombinados)
+head(freteadic)
+
+```
