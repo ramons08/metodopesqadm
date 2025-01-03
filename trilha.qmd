@@ -6,51 +6,163 @@ editor: visual
 
 ## Aula prática - Estudo de caso
 
-Você é um(a) analista de logística em uma grande empresa e está preocupado(a) com o aumento dos **custos de frete**, que têm impactado negativamente os resultados financeiros. Para entender melhor os fatores que influenciam esses custos, você decide usar a ferramenta de **regressão múltipla** e criar um modelo estatístico capaz de quantificar o impacto de variáveis como distância percorrida, peso da carga, tipo de transporte e outros fatores operacionais. Após uma análise inicial, você conseguiu extrair dos sistemas de informação da empresa dois relatórios contendo dados relevantes, que serão utilizados para estruturar sua pesquisa e apoiar decisões estratégicas voltadas à redução de custos e aumento da eficiência logística.
+Você é um(a) analista de logística em uma empresa e está preocupado(a) com o aumento dos **custos de frete**, que têm impactado negativamente os resultados financeiros. Para entender melhor os fatores que influenciam esses custos, você decide usar a ferramenta de **regressão múltipla** e criar um modelo estatístico capaz de quantificar o impacto de variáveis como distância percorrida, peso da carga, modal de transporte e outros fatores operacionais. Após uma exploração inicial dos dados que tinha à disposição, você conseguiu extrair dos sistemas de informação da empresa dois relatórios contendo dados relevantes, que serão utilizados para estruturar sua pesquisa e apoiar decisões estratégicas voltadas à redução de custos e aumento da eficiência logística.
 
 Os arquivos extraídos do sistema foram:\
-frete_dados_primarios.csv\
-frete_dados_adicionais.csv
+relatorio1.csv\
+relatorio2.csv
 
 Além do custo de transporte, esses arquivos contém variáveis que você identificou como relevantes para o estudo, que estão listadas a seguir.
 
 **Variável dependente:**
 
--   custo de transporte
+Custo de transporte (custo_frete)
 
 **Variáveis independentes:**
 
--distância\
--peso\
--modal\
--custo de combustível\
--experiência do motorista
+Distância (distancia_km)\
+Peso da carga (peso_carga_kg)\
+Consumo de combustível (consumo_combustivel_kml)\
+Temperatura do ambiente (temperatura_ambiente)\
+Horário do envio (hora_envio)
+
+## 0. Carregar pacotes que serão utilizados
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(carData)
+library(car)
+library(ggplot2)
+library(corrplot)
+
+```
 
 ## 1. Reunir arquivos em um dataframe
 
 ```{r}
 
-freteprima <- read.csv("frete_dados_primarios.csv")
-freteadic <- read.csv("frete_dados_adicionais.csv")
+relatorio1 <- read.csv("relatorio1.csv")
+relatorio2 <- read.csv("relatorio2.csv")
 
-dadoscombinados <- merge(freteprima, freteadic, by = "id_evento")
+dadoscombinados <- merge(relatorio1, relatorio2, by = "id")
 
+# Visualizar cabeçalho para conferir se a extração foi correta:
+head(relatorio1)
+head(relatorio2)
 head(dadoscombinados)
-head(freteadic)
-head(freteprima)
-
-```
-
-## 2. Exploração descritiva dos dados
-
-```{r}
-
-summary(dadoscombinados)
 
 
 ```
 
-```{r}
-cor(dadoscombinados[, c("custofrete", "distancia", "peso", "custo_combust")])
+## 00. Identificar e excluir campos vazios
 
+1.  Identificar quantos itens têm campos vazios (são NA)
+2.  Retirar itens NA
+
+```{r}
+
+sum(is.na(dadoscombinados))
+
+dados_trata_NA <- dadoscombinados %>% drop_na()
+
+
+```
+
+## 00. Identificar e tratar dados extremos
+
+Identificando outliers com o boxplot
+
+```{r}
+
+ggplot(dados_trata_NA, aes(x = 1, y = custo_frete)) +
+    geom_boxplot() +
+    labs(title = "Boxplot para Identificação de Outliers",
+         x = "",
+         y = "Custo Frete")
+```
+
+Removendo outliers, considerando 3 desvios padrão
+
+```{r}
+dados_trata_OUT <- dados_trata_NA %>%
+  filter(abs(scale(custo_frete)) <= 3, 
+         abs(scale(distancia_km)) <= 3, 
+         abs(scale(peso_carga_kg)) <= 3, 
+         abs(scale(consumo_combustivel_kml)) <= 3, 
+         abs(scale(temperatura_ambiente)) <= 3, 
+         abs(scale(hora_envio)) <= 3)
+
+dados_trata_final <- dados_trata_OUT %>%
+  mutate(across(c(custo_frete, distancia_km, peso_carga_kg, consumo_combustivel_kml, temperatura_ambiente, hora_envio), 
+                ~ scale(.) %>% as.vector(), 
+                .names = "Z_{col}"))
+
+ggplot(dados_trata_final, aes(x = 1, y = custo_frete)) +
+    geom_boxplot() +
+    labs(title = "Boxplot para Identificação de Outliers",
+         x = "",
+         y = "Custo Frete")
+```
+
+## ?Cálculo da amostra?
+
+## Análise de pressupostos da regressão
+
+## 1. Independência dos erros
+
+criar modelo da regressão
+
+visualizar sumário estatístico
+
+realizar teste de Durbin Watson
+
+```{r}
+
+
+modelo <- lm(custo_frete ~ distancia_km + peso_carga_kg +  + consumo_combustivel_kml + temperatura_ambiente + hora_envio, data = dados_trata_final)
+summary(modelo)
+durbinWatsonTest(modelo)
+
+```
+
+## 2. Homocedasticidade
+
+A variância dos resíduos deve ser constante. Analisando o gráfico:
+
+```{r}
+ggplot(data.frame(residuals = residuals(modelo), fitted = fitted(modelo)),
+         aes(x = fitted, y = residuals)) +
+    geom_point() +
+    geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+    labs(title = "Homoscedasticidade: Resíduos vs Valores Ajustados",
+         x = "Valores Ajustados",
+         y = "Resíduos")
+```
+
+## 3. Normalidade dos resíduos
+
+Deve ser constante
+
+```{r}
+ggplot(data.frame(residuals = residuals(modelo)), aes(sample = residuals)) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = "Normalidade dos Resíduos")
+
+```
+
+## 4. Multicolinearidade
+
+Não deve haver multicolinearidade entre variáveis (valor deve ser \<5)
+
+```{r}
+vif(modelo)
+```
+
+## 5. Resumo das estatísticas
+
+```{r}
+summary(dados_trata_OUT[ ,2:7])
 ```
